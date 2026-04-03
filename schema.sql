@@ -60,6 +60,7 @@ create table financial_records (
   date date not null,
   notes text,
   status text default 'PENDING',
+  is_deleted boolean default false,
   created_by uuid references users(id),
   org_id uuid references organizations(id),
   created_at timestamp default now()
@@ -72,11 +73,18 @@ create table audit_logs (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references users(id),
   action text not null,
-  record_id uuid references financial_records(id),
+  record_id uuid references financial_records(id) on delete set null,
   old_value jsonb,
   new_value jsonb,
   created_at timestamp default now()
 );
+
+--------------------------------------------------
+-- INDEXES (Performance Optimization)
+--------------------------------------------------
+create index idx_records_org on financial_records(org_id);
+create index idx_records_status on financial_records(status);
+create index idx_records_deleted on financial_records(is_deleted);
 
 --------------------------------------------------
 -- SEED DATA
@@ -96,7 +104,9 @@ insert into permissions (action) values
 ('DELETE'),
 ('APPROVE');
 
--- Map permissions to roles (basic setup)
+--------------------------------------------------
+-- ROLE PERMISSIONS MAPPING
+--------------------------------------------------
 
 -- ADMIN → all permissions
 insert into role_permissions (role_id, permission_id)

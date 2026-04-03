@@ -22,6 +22,7 @@ AuditFlow is a backend system for managing and analyzing financial records withi
 * 🔄 Approval workflow (approve, reject, reopen)
 * 📊 Dashboard analytics (summary, category breakdown, recent records)
 * 📜 Audit logs (track all critical actions)
+* 🗑️ Soft delete for records (data is not permanently removed)
 
 ---
 
@@ -29,16 +30,18 @@ AuditFlow is a backend system for managing and analyzing financial records withi
 
 ### Auth
 
-* `POST /api/auth/register`
+* `POST /api/auth/register` → Create User
 * `POST /api/auth/login`
 
 ### Records
 
-* `POST /api/records`
-* `GET /api/records`
-* `PATCH /api/records/:id/approve`
-* `PATCH /api/records/:id/reject`
-* `PATCH /api/records/:id/reopen`
+* `POST /api/records` → Create Record
+* `GET /api/records`  → Get Records
+* `PATCH /api/records/:id/approve` → Status Approve
+* `PATCH /api/records/:id/reject` → Status Reject 
+* `PATCH /api/records/:id/reopen` → Status Reopen
+* `PATCH /api/records/:id` → Update record
+* `DELETE /api/records/:id` → Soft delete record
 
 ### Dashboard
 
@@ -83,11 +86,11 @@ Run the provided schema.sql (included in repo)
 By default, users are registered with the **Analyst** role.
 
 To create an Admin user for testing:
-
+```
 1. Register a user using the API
 2. Go to Supabase → `users` table
 3. Update the `role_id` of that user to the ADMIN role
-
+```
 You can get ADMIN role ID using:
 
 ```sql
@@ -103,8 +106,6 @@ where email = 'your_email@example.com';
 ```
 
 This allows testing of admin-specific actions such as approving or rejecting records.
-
-```
 
 ---
 

@@ -47,6 +47,7 @@ export const getRecordsService = async (user, query) => {
         count: "exact"
       })
       .eq("org_id", user.orgId)
+      .eq("is_deleted", false)
       .order("created_at", { ascending: false })
       .range(from, to);
   
@@ -92,6 +93,7 @@ export const approveRecordService = async(recordID, user)=>{
   .from("financial_records")
   .update({status: "APPROVED"})
   .eq("id",recordID)
+  .eq("is_deleted", false)
   .select()
   .single()
   if(updateError) throw new Error(updateError.message);
@@ -130,6 +132,7 @@ export const rejectRecordService = async (recordID, user)=>
   .from("financial_records")
   .update({status:"REJECTED"})
   .eq("id",recordID)
+  .eq("is_deleted", false)
   .select()
   .single();
   
@@ -149,6 +152,7 @@ export const reopenRecordService = async (recordID, user) => {
     .from("financial_records")
     .select("*")
     .eq("id", recordID)
+    .eq("is_deleted", false)
     .single();
 
   if (error || !record) {
@@ -189,4 +193,81 @@ export const reopenRecordService = async (recordID, user) => {
   });
 
   return data;
+};
+
+export const deleteRecordService = async (recordId, user) => {
+  const { data: record, error } = await supabase
+    .from("financial_records")
+    .select("*")
+    .eq("id", recordId)
+    .eq("is_deleted", false)
+    .single();
+
+  if (error || !record) throw new Error("Record not found");
+
+  if (record.org_id !== user.orgId) {
+    throw new Error("Unauthorized access");
+  }
+
+  if (record.status !== "PENDING") {
+    throw new Error("Only pending records can be deleted");
+  }
+
+  if (
+    user.role === "ANALYST" &&
+    record.created_by !== user.userId
+  ) {
+    throw new Error("You can only delete your own records");
+  }
+
+  const { error: deleteError } = await supabase
+    .from("financial_records")
+    .update({ is_deleted: true })
+    .eq("id", recordId);
+
+  if (deleteError) throw new Error(deleteError.message);
+  await logAction({
+    userId: user.userId,
+    action: "DELETE",
+    recordId,
+    oldValue: record,
+    newValue: { ...record, is_deleted: true }
+  });
+
+  return { message: "Record deleted successfully" };
+};
+export const updateRecordService = async (recordId, data, user) => {
+  const { data: record, error } = await supabase
+    .from("financial_records")
+    .select("*")
+    .eq("id", recordId)
+    .single();
+
+  if (error || !record) throw new Error("Record not found");
+
+  if (record.org_id !== user.orgId) {
+    throw new Error("Unauthorized access");
+  }
+
+  if (record.status !== "PENDING") {
+    throw new Error("Only pending records can be updated");
+  }
+
+  if (
+    user.role === "ANALYST" &&
+    record.created_by !== user.userId
+  ) {
+    throw new Error("You can only update your own records");
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from("financial_records")
+    .update(data)
+    .eq("id", recordId)
+    .select()
+    .single();
+
+  if (updateError) throw new Error(updateError.message);
+
+  return updated;
 };
