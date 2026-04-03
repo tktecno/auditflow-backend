@@ -17,7 +17,7 @@ export const createRecordService = async (data, user)=>{
             category,
             date,
             notes,
-            status:"PENDDING",
+            status:"PENDING",
             created_by:user.userId,
             org_id:user.orgId,
         }
